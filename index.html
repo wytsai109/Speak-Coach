@@ -7,6 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDKs -->
+    <script type="module" src="firebase.js"></script>
 </head>
 <body>
     <div class="background-blobs">
@@ -21,7 +23,14 @@
                 <i class="fa-solid fa-language"></i>
                 <h1>AI Coach</h1>
             </div>
-            <button id="settingsBtn" class="icon-btn"><i class="fa-solid fa-gear"></i></button>
+            <div class="header-right">
+                <div id="userProfile" class="user-profile hidden">
+                    <img id="userAvatar" src="" alt="Avatar" class="user-avatar">
+                    <span id="userName" class="user-name"></span>
+                    <button id="logoutBtn" class="icon-btn-small" title="Logout"><i class="fa-solid fa-sign-out-alt"></i></button>
+                </div>
+                <button id="settingsBtn" class="icon-btn" title="Settings"><i class="fa-solid fa-gear"></i></button>
+            </div>
         </header>
 
         <div id="settingsPanel" class="settings-panel hidden">
@@ -75,6 +84,21 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card glass-panel">
+            <div class="logo login-logo">
+                <i class="fa-solid fa-language"></i>
+                <h1>AI Coach</h1>
+            </div>
+            <p class="login-subtitle">Sign in to save your progress and secure your data.</p>
+            <button id="googleLoginBtn" class="login-btn google-btn">
+                <i class="fa-brands fa-google"></i>
+                Sign in with Google
+            </button>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -1,3 +1,5 @@
+import { loginWithGoogle, logout, onAuthChange, saveMessageToDB, loadChatHistory, currentUser } from './firebase.js';
+
 // DOM Elements
 const settingsBtn = document.getElementById('settingsBtn');
 const settingsPanel = document.getElementById('settingsPanel');
@@ -8,6 +10,12 @@ const micBtn = document.getElementById('micBtn');
 const textInput = document.getElementById('textInput');
 const sendBtn = document.getElementById('sendBtn');
 const statusText = document.getElementById('statusText');
+const loginOverlay = document.getElementById('loginOverlay');
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+const userProfile = document.getElementById('userProfile');
+const userAvatar = document.getElementById('userAvatar');
+const userName = document.getElementById('userName');
+const logoutBtn = document.getElementById('logoutBtn');
 
 // State
 let isRecording = false;
@@ -69,6 +77,48 @@ targetLangSelect.addEventListener('change', (e) => {
     currentLanguage = e.target.value;
     if (recognition) {
         recognition.lang = currentLanguage;
+    }
+});
+
+// Firebase Auth Logic
+googleLoginBtn.addEventListener('click', loginWithGoogle);
+logoutBtn.addEventListener('click', logout);
+
+onAuthChange((user) => {
+    if (user) {
+        // Logged in
+        loginOverlay.classList.add('hidden');
+        userProfile.classList.remove('hidden');
+        userAvatar.src = user.photoURL;
+        userName.textContent = user.displayName;
+        
+        // Load History
+        chatContainer.innerHTML = ''; // Clear default message
+        loadChatHistory((messages) => {
+            if (messages.length === 0) {
+                // Show default message if empty
+                chatContainer.innerHTML = `
+                    <div class="message ai-message">
+                        <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+                        <div class="message-content">
+                            <p>Hello ${user.displayName.split(' ')[0]}! I am your AI language coach. Please enter your Gemini API Key in the settings, then click the microphone button to start speaking!</p>
+                        </div>
+                    </div>`;
+            } else {
+                messages.forEach(msg => {
+                    if (msg.role === 'user') {
+                        appendUserMessage(msg.text, false);
+                    } else {
+                        appendAIMessage(msg.text, msg.correction, false);
+                    }
+                });
+            }
+        });
+    } else {
+        // Logged out
+        loginOverlay.classList.remove('hidden');
+        userProfile.classList.add('hidden');
+        chatContainer.innerHTML = '';
     }
 });
 
@@ -152,7 +202,7 @@ async function handleUserSpeech(transcript) {
     statusText.textContent = "Processing...";
 
     // Add user message to UI
-    appendUserMessage(transcript);
+    appendUserMessage(transcript, true);
 
     // Call API
     await fetchAIResponse(transcript);
@@ -162,7 +212,7 @@ async function handleUserSpeech(transcript) {
     statusText.textContent = "Ready";
 }
 
-function appendUserMessage(text) {
+function appendUserMessage(text, saveToDB = true) {
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message user-message';
     msgDiv.innerHTML = `
@@ -171,9 +221,13 @@ function appendUserMessage(text) {
     `;
     chatContainer.appendChild(msgDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    if (saveToDB) {
+        saveMessageToDB('user', text);
+    }
 }
 
-function appendAIMessage(replyText, correctionText) {
+function appendAIMessage(replyText, correctionText, saveToDB = true) {
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message ai-message';
     
@@ -201,6 +255,10 @@ function appendAIMessage(replyText, correctionText) {
 
     chatContainer.appendChild(msgDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
+    
+    if (saveToDB) {
+        saveMessageToDB('ai', replyText, correctionText);
+    }
 }
 
 function showTypingIndicator() {
@@ -333,7 +391,7 @@ Output MUST be strictly in JSON format like this:
         // Parse JSON
         const result = JSON.parse(resultText);
         
-        appendAIMessage(result.reply, result.correction);
+        appendAIMessage(result.reply, result.correction, true);
         speakText(result.reply);
 
     } catch (error) {
